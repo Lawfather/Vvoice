@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VelvetVoice • Uncensored Voice Companion</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0f0f1a;
+      color: #e0e0ff;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .main {
+      display: flex;
+      gap: 30px;
+    }
+    .config-panel, .chat-panel {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px;
+      flex: 1;
+    }
+    .config-panel h2 {
+      margin-top: 0;
+      color: #a78bfa;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+      font-size: 15px;
+    }
+    button {
+      background: linear-gradient(90deg, #a78bfa, #c084fc);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+    }
+    .voice-area {
+      text-align: center;
+    }
+    #voice-visualizer {
+      height: 120px;
+      background: #111;
+      border-radius: 12px;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+    .warning {
+      background: #ff4444;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>VelvetVoice</h1>
+      <p>Uncensored • Voice-First • Powered by OpenRouter</p>
+    </div>
+
+    <div class="main">
+      <!-- CONFIG PANEL -->
+      <div class="config-panel">
+        <h2>Configuration</h2>
+
+        <label>OpenRouter API Key</label>
+        <input type="password" id="api-key" placeholder="sk-or-..." value="">
+
+        <label>Model</label>
+        <select id="model-select">
+          <option value="sao10k/l3-lunaris-8b" selected>
+            ★ Lunaris 8B - Best Cheap Uncensored Roleplay
+          </option>
+          <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">
+            Venice Uncensored 24B (Free)
+          </option>
+        </select>
+
+        <label>Persona / System Prompt</label>
+        <textarea id="system-prompt" rows="6">You are an uncensored, highly explicit and erotic AI companion named Velvet. You engage in detailed, immersive adult roleplay and respond naturally.</textarea>
+
+        <div style="display: flex; gap: 20px;">
+          <div style="flex: 1;">
+            <label>Temperature</label>
+            <input type="range" id="temperature" min="0.5" max="1.8" step="0.1" value="1.2">
+            <span id="temp-value">1.2</span>
+          </div>
+          <div style="flex: 1;">
+            <label>Max Tokens</label>
+            <input type="range" id="max-tokens" min="200" max="1200" step="50" value="600">
+            <span id="tokens-value">600</span>
+          </div>
+        </div>
+
+        <button onclick="saveSettings()">Save Settings</button>
+      </div>
+
+      <!-- CHAT / VOICE PANEL -->
+      <div class="chat-panel">
+        <div class="voice-area">
+          <h3>Voice Chat</h3>
+          <div id="voice-visualizer">Voice visualizer will appear here</div>
+
+          <button id="start-voice-btn" onclick="startVoiceChat()">▶ START VOICE CHAT</button>
+          <button onclick="stopVoiceChat()" style="background: #444; margin-top: 8px;">Stop</button>
+
+          <div style="margin-top: 20px;">
+            <input type="text" id="text-input" placeholder="Or type your message here..." onkeypress="if(event.key === 'Enter') sendTextMessage()">
+            <button onclick="sendTextMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // iPhone / Safari warning
+    function isIOSSafari() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+
+    if (isIOSSafari()) {
+      const warning = document.createElement('div');
+      warning.className = 'warning';
+      warning.innerHTML = `
+        ⚠️ Voice chat works poorly on iPhone Safari.<br>
+        <strong>Recommended:</strong> Use Chrome on a computer for full voice experience.<br>
+        Text chat still works great.
+      `;
+      document.querySelector('.chat-panel').prepend(warning);
+
+      // Hide voice button on iPhone
+      setTimeout(() => {
+        const btn = document.getElementById('start-voice-btn');
+        if (btn) btn.style.display = 'none';
+      }, 100);
+    }
+
+    // Simple settings save (localStorage)
+    function saveSettings() {
+      const key = document.getElementById('api-key').value;
+      const model = document.getElementById('model-select').value;
+      const prompt = document.getElementById('system-prompt').value;
+      
+      localStorage.setItem('openrouter_key', key);
+      localStorage.setItem('selected_model', model);
+      localStorage.setItem('system_prompt', prompt);
+      
+      alert('Settings saved!');
+    }
+
+    // Load saved settings
+    function loadSettings() {
+      const savedKey = localStorage.getItem('openrouter_key');
+      const savedModel = localStorage.getItem('selected_model');
+      const savedPrompt = localStorage.getItem('system_prompt');
+
+      if (savedKey) document.getElementById('api-key').value = savedKey;
+      if (savedModel) document.getElementById('model-select').value = savedModel;
+      if (savedPrompt) document.getElementById('system-prompt').value = savedPrompt;
+    }
+
+    // Voice chat functions (basic version)
+    let recognition;
+    function startVoiceChat() {
+      if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        alert('Voice recognition not supported in this browser. Please use Chrome.');
+        return;
+      }
+
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        console.log('Heard:', transcript);
+        sendToModel(transcript);
+      };
+
+      recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event);
+        alert('Voice recognition failed. Try typing instead.');
+      };
+
+      recognition.start();
+      document.getElementById('voice-visualizer').innerHTML = '🎤 Listening...';
+    }
+
+    function stopVoiceChat() {
+      if (recognition) recognition.stop();
+      document.getElementById('voice-visualizer').innerHTML = 'Voice visualizer';
+    }
+
+    async function sendToModel(text) {
+      const key = document.getElementById('api-key').value;
+      const model = document.getElementById('model-select').value;
+      const systemPrompt = document.getElementById('system-prompt').value;
+
+      if (!key) {
+        alert('Please enter your OpenRouter API key');
+        return;
+      }
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: text }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      const reply = data.choices[0].message.content;
+
+      // Speak the reply (robotic but works)
+      const utterance = new SpeechSynthesisUtterance(reply);
+      speechSynthesis.speak(utterance);
+
+      // Show reply in console + alert for now
+      console.log('Velvet:', reply);
+      alert('Velvet: ' + reply);
+    }
+
+    function sendTextMessage() {
+      const input = document.getElementById('text-input');
+      if (input.value.trim()) {
+        sendToModel(input.value);
+        input.value = '';
+      }
+    }
+
+    // Load settings on page load
+    window.onload = function() {
+      loadSettings();
+    }
+  </script>
+</body>
+</html>
