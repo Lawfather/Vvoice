@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VelvetVoice • OpenRouter Uncensored Voice Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Playfair+Display:wght@700&amp;display=swap');
+        
+        :root {
+            --primary: #c026d3;
+        }
+        
+        body {
+            font-family: 'Inter', system_ui, sans-serif;
+        }
+        
+        .title-font {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 700;
+        }
+
+        .dark-gradient {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+        }
+
+        .neon-purple {
+            color: #c026d3;
+            text-shadow: 0 0 10px rgba(192, 38, 211, 0.5);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-bubble-user {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 20px 20px 5px 20px;
+        }
+
+        .chat-bubble-ai {
+            background: linear-gradient(135deg, #4c1d95, #5b21b6);
+            border-radius: 20px 20px 20px 5px;
+        }
+
+        .status-listening {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .voice-wave {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 24px;
+        }
+
+        .voice-bar {
+            width: 4px;
+            background: #c026d3;
+            border-radius: 9999px;
+            animation: soundwave 1.2s infinite ease-in-out;
+        }
+
+        .voice-bar:nth-child(2) { animation-delay: 0.2s; height: 60%; }
+        .voice-bar:nth-child(3) { animation-delay: 0.4s; height: 100%; }
+        .voice-bar:nth-child(4) { animation-delay: 0.1s; height: 40%; }
+        .voice-bar:nth-child(5) { animation-delay: 0.3s; height: 80%; }
+
+        @keyframes soundwave {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
+        }
+
+        .message {
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+
+        .section-header {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .nsfw-badge {
+            background: linear-gradient(90deg, #c026d3, #e11d48);
+            color: white;
+            font-size: 10px;
+            padding: 1px 8px;
+            border-radius: 9999px;
+            font-weight: 700;
+        }
+
+        .log-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-[#0a0a12] text-white dark-gradient min-h-screen">
+    <div class="max-w-5xl mx-auto p-4 md:p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-x-4">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-pink-600 flex items-center justify-center shadow-2xl">
+                    <i class="fas fa-headset text-3xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="title-font text-4xl font-bold tracking-tighter">VelvetVoice</h1>
+                    <p class="text-sm text-zinc-400 -mt-1">Uncensored • Voice-First • Powered by OpenRouter</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-x-3">
+                <div class="px-4 py-1.5 rounded-3xl glass flex items-center gap-x-2 text-sm">
+                    <div class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span class="font-medium text-emerald-400">Connected to OpenRouter</span>
+                </div>
+                <div class="nsfw-badge flex items-center gap-x-1 px-3 py-1">
+                    <i class="fas fa-fire text-xs"></i>
+                    <span class="font-bold tracking-wider text-[10px]">X-RATED READY</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Settings Panel -->
+            <div class="lg:col-span-5 xl:col-span-4">
+                <div class="glass rounded-3xl p-6 sticky top-4">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="font-semibold text-xl flex items-center gap-x-2">
+                                <i class="fas fa-sliders-h text-purple-400"></i>
+                                <span>Configuration</span>
+                            </h2>
+                            <p class="text-xs text-zinc-500 mt-0.5">One-time setup • Key saved locally</p>
+                        </div>
+                    </div>
+
+                    <!-- API Key -->
+                    <div class="mb-5">
+                        <label class="section-header text-zinc-400 mb-1.5 block">OpenRouter API Key</label>
+                        <div class="relative">
+                            <input id="apiKey" type="password" 
+                                   class="w-full bg-zinc-900 border border-zinc-700 focus:border-purple-500 transition-colors rounded-2xl px-4 py-3 text-sm font-mono placeholder:text-zinc-600"
+                                   placeholder="sk-or-...">
+                            <button onclick="saveApiKey()" 
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs bg-purple-600 hover:bg-purple-700 transition rounded-xl font-medium">
+                                SAVE
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-zinc-500 mt-1.5">Get free key at <a href="https://openrouter.ai/keys" target="_blank" class="underline hover:text-purple-400">openrouter.ai/keys</a></p>
+                    </div>
+
+                    <!-- Model Selection -->
+                    <div class="mb-5">
+                        <label class="section-header text-zinc-400 mb-1.5 block">Model (Cheapest Best Uncensored)</label>
+                        <select id="modelSelect" onchange="updateModelInfo()"
+                                class="w-full bg-zinc-900 border border-zinc-700 focus:border-purple-500 transition-colors rounded-2xl px-4 py-3 text-sm">
+                            <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">★ Venice Uncensored (Free) - Dolphin Mistral 24B</option>
+                            <option value="sao10k/l3-lunaris-8b">Lunaris 8B (Sao10k) - $0.04/$0.05 per M tokens</option>
+                            <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition">Venice Uncensored (Paid) - Higher limits</option>
+                            <option value="microsoft/wizardlm-2-8x22b">WizardLM-2 8x22B - Popular RP (~$0.62/M)</option>
+                            <option value="">-- Custom Model ID --</option>
+                        </select>
+                        <div id="modelInfo" class="mt-2 text-xs px-3 py-2 bg-zinc-950 rounded-2xl border border-zinc-800 text-zinc-400"></div>
+                    </div>
+
+                    <!-- System Prompt / Persona -->
+                    <div class="mb-5">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="section-header text-zinc-400">Persona / System Prompt</label>
+                            <button onclick="loadDefaultPersona()" 
+                                    class="text-xs px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition flex items-center gap-x-1">
+                                <i class="fas fa-redo text-[10px]"></i>
+                                <span class="text-[10px]">Default NSFW</span>
+                            </button>
+                        </div>
+                        <textarea id="systemPrompt" rows="4" 
+                                  class="w-full bg-zinc-900 border border-zinc-700 focus:border-purple-500 transition-colors rounded-2xl px-4 py-3 text-sm resize-y min-h-[92px]"
+                                  placeholder="You are..."></textarea>
+                    </div>
+
+                    <!-- Advanced Settings -->
+                    <div class="grid grid-cols-2 gap-4 mb-2">
+                        <div>
+                            <label class="section-header text-zinc-400 mb-1 block text-xs">Temperature</label>
+                            <div class="flex items-center gap-x-3">
+                                <input type="range" id="temperature" min="0.5" max="1.5" step="0.05" value="1.1"
+                                       class="flex-1 accent-purple-600" oninput="updateTempLabel()">
+                                <span id="tempValue" class="font-mono text-sm w-8 text-right">1.10</span>
+                            </div>
+                            <p class="text-[10px] text-zinc-500">Higher = more creative/explicit</p>
+                        </div>
+                        <div>
+                            <label class="section-header text-zinc-400 mb-1 block text-xs">Max Tokens (Response)</label>
+                            <div class="flex items-center gap-x-3">
+                                <input type="range" id="maxTokens" min="200" max="2000" step="50" value="800"
+                                       class="flex-1 accent-purple-600" oninput="updateTokenLabel()">
+                                <span id="tokenValue" class="font-mono text-sm w-12 text-right">800</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-zinc-800 flex gap-2">
+                        <button onclick="clearHistory()" 
+                                class="flex-1 py-2.5 text-sm rounded-2xl border border-zinc-700 hover:bg-zinc-900 transition flex items-center justify-center gap-x-2 text-red-400 hover:text-red-300">
+                            <i class="fas fa-trash text-xs"></i>
+                            <span class="font-medium text-xs">Clear Chat</span>
+                        </button>
+                        <button onclick="exportChat()" 
+                                class="flex-1 py-2.5 text-sm rounded-2xl border border-zinc-700 hover:bg-zinc-900 transition flex items-center justify-center gap-x-2">
+                            <i class="fas fa-download text-xs"></i>
+                            <span class="font-medium text-xs">Export</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Voice Interface -->
+            <div class="lg:col-span-7 xl:col-span-8">
+                <div class="glass rounded-3xl p-6 h-full flex flex-col">
+                    
+                    <!-- Status Bar -->
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <div class="flex items-center gap-x-3">
+                            <div id="statusIndicator" 
+                                 class="px-4 py-1.5 rounded-3xl text-sm font-medium flex items-center gap-x-2 bg-zinc-900 border border-zinc-700">
+                                <i class="fas fa-microphone-slash text-zinc-400"></i>
+                                <span id="statusText" class="font-semibold">Ready</span>
+                            </div>
+                            
+                            <div id="voiceWave" class="voice-wave hidden">
+                                <div class="voice-bar h-2"></div>
+                                <div class="voice-bar h-3"></div>
+                                <div class="voice-bar h-4"></div>
+                                <div class="voice-bar h-3"></div>
+                                <div class="voice-bar h-2"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs text-zinc-500 font-mono flex items-center gap-x-1.5">
+                            <i class="fas fa-robot"></i>
+                            <span id="currentModelShort">Venice Uncensored 24B</span>
+                        </div>
+                    </div>
+
+                    <!-- Chat Area -->
+                    <div id="chatContainer" 
+                         class="flex-1 bg-zinc-950/70 border border-zinc-800 rounded-3xl p-5 mb-4 overflow-y-auto custom-scroll min-h-[320px] max-h-[420px] text-sm leading-relaxed space-y-4">
+                        <!-- Messages injected here by JS -->
+                        <div class="flex justify-center items-center h-full opacity-40">
+                            <div class="text-center">
+                                <i class="fas fa-comments text-4xl mb-3 block text-purple-400/60"></i>
+                                <p class="text-xs tracking-widest">YOUR UNCENSORED VOICE COMPANION AWAITS</p>
+                                <p class="text-[10px] mt-1 text-zinc-500">Press Start • Speak naturally • It responds with voice</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="startBtn"
+                                onclick="toggleVoiceMode()"
+                                class="flex-1 h-14 rounded-3xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:brightness-110 active:scale-[0.985] transition-all flex items-center justify-center gap-x-3 text-lg font-semibold shadow-xl shadow-purple-950/50">
+                            <i class="fas fa-play mr-1" id="startIcon"></i>
+                            <span id="startText">START VOICE CHAT</span>
+                        </button>
+                        
+                        <button onclick="stopVoiceMode()"
+                                class="sm:w-36 h-14 rounded-3xl border border-zinc-700 hover:bg-zinc-900 transition flex items-center justify-center gap-x-2 text-sm font-medium disabled:opacity-40"
+                                id="stopBtn" disabled>
+                            <i class="fas fa-stop"></i>
+                            <span>STOP</span>
+                        </button>
+                    </div>
+
+                    <!-- Text Fallback -->
+                    <div class="mt-4 flex gap-2">
+                        <input id="textInput" type="text" placeholder="Or type your message here..." 
+                               class="flex-1 bg-zinc-900 border border-zinc-700 focus:border-purple-500 rounded-3xl px-5 py-3 text-sm"
+                               onkeypress="if (event.key === 'Enter') sendTextMessage()">
+                        <button onclick="sendTextMessage()" 
+                                class="px-6 rounded-3xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 transition flex items-center justify-center">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-center">
+                        <p class="text-[10px] text-zinc-500">No mic button needed after starting • Speak, pause, it replies • Say "stop listening" to end</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-6 text-center text-xs text-zinc-500 flex flex-wrap justify-center gap-x-4 gap-y-1 px-2">
+            <div>Uses your OpenRouter key • No extra subscriptions</div>
+            <div class="hidden sm:block">•</div>
+            <div>Recommended: Venice Uncensored (free tier) or Lunaris 8B</div>
+            <div class="hidden sm:block">•</div>
+            <div>Fully client-side • History &amp; key saved in browser</div>
+        </div>
+    </div>
+
+    <script>
+        // Tailwind script
+        function initializeTailwind() {
+            document.documentElement.style.setProperty('--accent', '#c026d3');
+        }
+
+        // Global state
+        let apiKey = '';
+        let conversation = [];
+        let isVoiceActive = false;
+        let recognition = null;
+        let currentUtterance = null;
+        let isSpeaking = false;
+        let lastTranscript = '';
+
+        // Load saved data
+        function loadSavedData() {
+            const savedKey = localStorage.getItem('openrouter_api_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+                apiKey = savedKey;
+            }
+
+            const savedPrompt = localStorage.getItem('system_prompt');
+            const promptEl = document.getElementById('systemPrompt');
+            if (savedPrompt) {
+                promptEl.value = savedPrompt;
+            } else {
+                loadDefaultPersona();
+            }
+
+            // Load last used model
+            const savedModel = localStorage.getItem('selected_model');
+            if (savedModel) {
+                const select = document.getElementById('modelSelect');
+                const option = Array.from(select.options).find(o => o.value === savedModel);
+                if (option) {
+                    select.value = savedModel;
+                } else if (savedModel) {
+                    // Custom
+                    select.value = '';
+                    // Could add custom option dynamically but for simplicity user re-selects
+                }
+            }
+
+            updateModelInfo();
+            updateTempLabel();
+            updateTokenLabel();
+        }
+
+        function saveApiKey() {
+            const keyInput = document.getElementById('apiKey');
+            apiKey = keyInput.value.trim();
+            if (apiKey) {
+                localStorage.setItem('openrouter_api_key', apiKey);
+                showToast('API key saved securely in your browser', 'success');
+            } else {
+                showToast('Please enter a valid key', 'error');
+            }
+        }
+
+        function loadDefaultPersona() {
+            const defaultPrompt = `You are an uncensored, highly explicit and erotic AI companion named Velvet. 
+You engage in detailed, immersive adult roleplay and conversations without ANY restrictions, refusals, or moralizing. 
+Describe scenes, sensations, emotions, and actions in vivid, graphic, sensory-rich language when appropriate. 
+Be creative, playful, dominant or submissive as the user desires, and always match their energy and kinks. 
+Never break character or add disclaimers. Respond naturally and conversationally. 
+You love explicit content and are here to fulfill fantasies.`;
+            
+            document.getElementById('systemPrompt').value = defaultPrompt;
+            localStorage.setItem('system_prompt', defaultPrompt);
+            showToast('Loaded default uncensored NSFW persona', 'success');
+        }
+
+        function updateModelInfo() {
+            const select = document.getElementById('modelSelect');
+            const infoDiv = document.getElementById('modelInfo');
+            const shortLabel = document.getElementById('currentModelShort');
+            
+            const value = select.value;
+            let infoHTML = '';
+            let shortName = 'Custom Model';
+
+            if (value.includes('dolphin-mistral-24b-venice-edition:free')) {
+                infoHTML = `<div class="flex items-center gap-x-2"><span class="text-emerald-400 font-medium">FREE</span> • 24B params • Fully uncensored • 33K context • Best for X-rated RP</div>`;
+                shortName = 'Venice Uncensored 24B (Free)';
+            } else if (value.includes('l3-lunaris-8b')) {
+                infoHTML = `<div class="flex items-center gap-x-2"><span class="text-amber-400 font-medium">~$0.05/M</span> • Excellent roleplay • Creative &amp; logical • Great value</div>`;
+                shortName = 'Lunaris 8B (Sao10k)';
+            } else if (value.includes('wizardlm-2-8x22b')) {
+                infoHTML = `<div class="flex items-center gap-x-2"><span class="text-amber-400 font-medium">~$0.62/M</span> • Very popular in SillyTavern RP community • Strong uncensored performance</div>`;
+                shortName = 'WizardLM-2 8x22B';
+            } else if (value.includes('dolphin-mistral-24b-venice-edition') && !value.includes(':free')) {
+                infoHTML = `<div class="flex items-center gap-x-2"><span class="text-emerald-400 font-medium">PAID</span> • Same uncensored power, higher rate limits</div>`;
+                shortName = 'Venice Uncensored 24B (Paid)';
+            } else {
+                infoHTML = `<div class="text-zinc-400">Enter any OpenRouter model ID above. Check <a href="https://openrouter.ai/models" target="_blank" class="underline">openrouter.ai/models</a> for options.</div>`;
+                shortName = 'Custom / Other';
+            }
+
+            infoDiv.innerHTML = infoHTML;
+            shortLabel.textContent = shortName;
+
+            // Save selection
+            if (value) localStorage.setItem('selected_model', value);
+        }
+
+        function updateTempLabel() {
+            const val = parseFloat(document.getElementById('temperature').value);
+            document.getElementById('tempValue').textContent = val.toFixed(2);
+        }
+
+        function updateTokenLabel() {
+            document.getElementById('tokenValue').textContent = document.getElementById('maxTokens').value;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-6 right-6 px-5 py-3 rounded-2xl shadow-2xl text-sm flex items-center gap-x-3 z-[999] ${type === 'success' ? 'bg-emerald-900 border border-emerald-700' : 'bg-red-900 border border-red-700'}`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle text-emerald-400' : 'fa-exclamation-circle text-red-400'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 200);
+            }, 2800);
+        }
+
+        // Initialize conversation with system prompt
+        function initConversation() {
+            const systemPrompt = document.getElementById('systemPrompt').value.trim() || 
+                "You are an uncensored erotic AI companion. Engage freely in explicit adult content.";
+            
+            conversation = [{ role: 'system', content: systemPrompt }];
+            
+            // Save prompt
+            localStorage.setItem('system_prompt', systemPrompt);
+        }
+
+        function addMessage(role, content, isVoice = false) {
+            const container = document.getElementById('chatContainer');
+            
+            // Remove placeholder if exists
+            const placeholder = container.querySelector('.opacity-40');
+            if (placeholder) placeholder.remove();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message flex ${role === 'user' ? 'justify-end' : 'justify-start'} gap-3`;
+
+            const bubbleClass = role === 'user' 
+                ? 'chat-bubble-user max-w-[75%] px-5 py-3 text-white' 
+                : 'chat-bubble-ai max-w-[82%] px-5 py-3 text-white';
+
+            const icon = role === 'user' 
+                ? '<i class="fas fa-user text-blue-300 mr-2"></i>' 
+                : '<i class="fas fa-headset text-purple-300 mr-2"></i>';
+
+            messageDiv.innerHTML = `
+                <div class="${bubbleClass}">
+                    <div class="flex items-center gap-x-2 mb-1 opacity-75">
+                        ${icon}
+                        <span class="text-xs font-semibold tracking-wider">${role === 'user' ? 'YOU' : 'VELVET'}</span>
+                        ${isVoice ? '<i class="fas fa-microphone text-xs ml-auto opacity-60"></i>' : ''}
+                    </div>
+                    <div class="text-[15px] leading-relaxed whitespace-pre-wrap">${content}</div>
+                </div>
+            `;
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+
+            // Add to conversation history
+            if (role !== 'system') {
+                conversation.push({ role, content });
+                
+                // Optional: trim very long history (keep last ~15 messages)
+                if (conversation.length > 18) {
+                    const systemMsg = conversation[0];
+                    conversation = [systemMsg, ...conversation.slice(-16)];
+                }
+            }
+        }
+
+        async function callOpenRouterAPI(userMessage) {
+            if (!apiKey) {
+                showToast('Please enter and save your OpenRouter API key first!', 'error');
+                return null;
+            }
+
+            const model = document.getElementById('modelSelect').value || 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free';
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const maxTokens = parseInt(document.getElementById('maxTokens').value);
+
+            // Add user message to history
+            conversation.push({ role: 'user', content: userMessage });
+
+            const payload = {
+                model: model,
+                messages: conversation,
+                temperature: temperature,
+                max_tokens: maxTokens,
+                stream: false
+            };
+
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'VelvetVoice Uncensored Companion'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const assistantMessage = data.choices?.[0]?.message?.content || "I'm having trouble responding right now. Please try again.";
+
+                // Add assistant response
+                conversation.push({ role: 'assistant', content: assistantMessage });
+
+                return assistantMessage;
+
+            } catch (error) {
+                console.error('OpenRouter Error:', error);
+                showToast(`Error: ${error.message}. Check key, model, or internet.`, 'error');
+                
+                // Remove the failed user message from history
+                conversation.pop();
+                return null;
+            }
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) {
+                showToast('Your browser does not support text-to-speech.', 'error');
+                return;
+            }
+
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Nice voice settings for companion feel
+            utterance.rate = 1.05;      // Slightly faster for natural flow
+            utterance.pitch = 1.0;      // Natural pitch
+            utterance.volume = 0.95;
+
+            // Try to pick a good voice (preference for female/neutral expressive)
+            const voices = window.speechSynthesis.getVoices();
+            let selectedVoice = voices.find(v => 
+                v.name.toLowerCase().includes('female') || 
+                v.name.toLowerCase().includes('samantha') ||
+                v.name.toLowerCase().includes('karen') ||
+                v.name.toLowerCase().includes('tessa')
+            ) || voices.find(v => v.lang.startsWith('en'));
+
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+
+            utterance.onend = () => {
+                isSpeaking = false;
+                if (isVoiceActive) {
+                    // Resume listening after speaking
+                    setTimeout(() => {
+                        if (isVoiceActive && !isSpeaking) {
+                            startListening();
+                        }
+                    }, 650);
+                }
+                updateStatus('Listening...', 'listening');
+            };
+
+            utterance.onerror = (e) => {
+                console.error('TTS Error:', e);
+                isSpeaking = false;
+                if (isVoiceActive) startListening();
+            };
+
+            isSpeaking = true;
+            currentUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
+            
+            updateStatus('Speaking...', 'speaking');
+        }
+
+        function updateStatus(text, mode = 'ready') {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const wave = document.getElementById('voiceWave');
+
+            statusText.textContent = text;
+
+            indicator.className = `px-4 py-1.5 rounded-3xl text-sm font-medium flex items-center gap-x-2 border `;
+            wave.classList.add('hidden');
+
+            if (mode === 'listening') {
+                indicator.classList.add('bg-emerald-950', 'border-emerald-800', 'text-emerald-400', 'status-listening');
+                wave.classList.remove('hidden');
+                wave.style.display = 'flex';
+            } else if (mode === 'speaking') {
+                indicator.classList.add('bg-purple-950', 'border-purple-800', 'text-purple-400');
+            } else if (mode === 'processing') {
+                indicator.classList.add('bg-amber-950', 'border-amber-800', 'text-amber-400');
+            } else {
+                indicator.classList.add('bg-zinc-900', 'border-zinc-700', 'text-zinc-300');
+                wave.style.display = 'none';
+            }
+        }
+
+        // Voice Recognition Setup
+        function setupRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                showToast('Speech recognition not supported in this browser. Use Chrome/Edge.', 'error');
+                return false;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            let finalTranscript = '';
+            let silenceTimer = null;
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interim += transcript;
+                    }
+                }
+
+                if (finalTranscript.trim()) {
+                    lastTranscript = finalTranscript.trim();
+                    
+                    // Clear any pending silence timer
+                    if (silenceTimer) clearTimeout(silenceTimer);
+
+                    // Process after short pause (user stopped speaking)
+                    silenceTimer = setTimeout(() => {
+                        if (lastTranscript && isVoiceActive && !isSpeaking) {
+                            processVoiceInput(lastTranscript);
+                            lastTranscript = '';
+                        }
+                    }, 850); // 850ms pause detection
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                
+                if (event.error === 'no-speech') {
+                    // Normal, just restart
+                    if (isVoiceActive && !isSpeaking) {
+                        setTimeout(() => startListening(), 300);
+                    }
+                } else if (event.error === 'audio-capture') {
+                    showToast('Microphone access issue. Please allow mic permissions.', 'error');
+                    stopVoiceMode();
+                } else {
+                    if (isVoiceActive) {
+                        setTimeout(() => startListening(), 1200);
+                    }
+                }
+            };
+
+            recognition.onend = () => {
+                // Auto-restart if still active and not speaking
+                if (isVoiceActive && !isSpeaking) {
+                    setTimeout(() => {
+                        if (isVoiceActive && !isSpeaking) startListening();
+                    }, 400);
+                }
+            };
+
+            return true;
+        }
+
+        function startListening() {
+            if (!recognition || !isVoiceActive || isSpeaking) return;
+
+            try {
+                recognition.start();
+                updateStatus('Listening...', 'listening');
+            } catch (e) {
+                // Already started or error, try again shortly
+                setTimeout(() => {
+                    if (isVoiceActive && !isSpeaking) startListening();
+                }, 800);
+            }
+        }
+
+        async function processVoiceInput(transcript) {
+            if (!transcript || isSpeaking || !isVoiceActive) return;
+
+            updateStatus('Processing...', 'processing');
+            
+            // Stop recognition temporarily
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+
+            // Display user message
+            addMessage('user', transcript, true);
+
+            // Call LLM
+            const response = await callOpenRouterAPI(transcript);
+
+            if (response && isVoiceActive) {
+                addMessage('assistant', response);
+                
+                // Speak the response
+                setTimeout(() => {
+                    if (isVoiceActive) {
+                        speakText(response);
+                    }
+                }, 180);
+            } else if (isVoiceActive) {
+                // Error recovery
+                updateStatus('Listening...', 'listening');
+                startListening();
+            }
+        }
+
+        function sendTextMessage() {
+            const input = document.getElementById('textInput');
+            const text = input.value.trim();
+            if (!text || isSpeaking) return;
+
+            addMessage('user', text);
+            input.value = '';
+
+            // Process
+            (async () => {
+                updateStatus('Processing...', 'processing');
+                const response = await callOpenRouterAPI(text);
+                
+                if (response) {
+                    addMessage('assistant', response);
+                    speakText(response);
+                } else {
+                    updateStatus('Ready', 'ready');
+                }
+            })();
+        }
+
+        function toggleVoiceMode() {
+            if (!apiKey) {
+                showToast('Please save your OpenRouter API key first', 'error');
+                document.getElementById('apiKey').focus();
+                return;
+            }
+
+            const btn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            if (!isVoiceActive) {
+                // START
+                initConversation();
+                
+                if (!recognition) {
+                    if (!setupRecognition()) return;
+                }
+
+                isVoiceActive = true;
+                btn.innerHTML = `<i class="fas fa-pause mr-2"></i> <span>VOICE CHAT ACTIVE</span>`;
+                btn.classList.remove('from-purple-600', 'via-fuchsia-600', 'to-pink-600');
+                btn.classList.add('from-emerald-600', 'via-teal-600', 'to-cyan-600');
+                
+                stopBtn.disabled = false;
+
+                // Start first listen
+                updateStatus('Listening...', 'listening');
+                setTimeout(() => startListening(), 300);
+
+                // Welcome message (optional)
+                setTimeout(() => {
+                    if (isVoiceActive && conversation.length === 1) {
+                        const welcome = "Hi there... I'm Velvet. Tell me what you desire, or just start talking. I'm listening.";
+                        addMessage('assistant', welcome);
+                        speakText(welcome);
+                    }
+                }, 1400);
+
+            } else {
+                stopVoiceMode();
+            }
+        }
+
+        function stopVoiceMode() {
+            isVoiceActive = false;
+            isSpeaking = false;
+
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+            }
+
+            if (currentUtterance) {
+                window.speechSynthesis.cancel();
+            }
+
+            const btn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            btn.innerHTML = `<i class="fas fa-play mr-1" id="startIcon"></i> <span id="startText">START VOICE CHAT</span>`;
+            btn.classList.remove('from-emerald-600', 'via-teal-600', 'to-cyan-600');
+            btn.classList.add('from-purple-600', 'via-fuchsia-600', 'to-pink-600');
+            
+            stopBtn.disabled = true;
+
+            updateStatus('Ready', 'ready');
+
+            // Optional goodbye
+            const container = document.getElementById('chatContainer');
+            if (container.children.length > 1) {
+                setTimeout(() => {
+                    showToast('Voice session ended. History preserved.', 'success');
+                }, 600);
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('Clear current conversation history?')) {
+                conversation = [];
+                const container = document.getElementById('chatContainer');
+                container.innerHTML = `
+                    <div class="flex justify-center items-center h-full opacity-40">
+                        <div class="text-center">
+                            <i class="fas fa-comments text-4xl mb-3 block text-purple-400/60"></i>
+                            <p class="text-xs tracking-widest">HISTORY CLEARED • READY FOR NEW SESSION</p>
+                        </div>
+                    </div>
+                `;
+                initConversation();
+                showToast('Chat history cleared', 'success');
+            }
+        }
+
+        function exportChat() {
+            if (conversation.length <= 1) {
+                showToast('No conversation to export yet', 'error');
+                return;
+            }
+
+            let exportText = `VelvetVoice Uncensored Conversation\nExported: ${new Date().toLocaleString()}\nModel: ${document.getElementById('modelSelect').value}\n\n`;
+            
+            conversation.forEach(msg => {
+                if (msg.role === 'system') return;
+                const prefix = msg.role === 'user' ? 'YOU: ' : 'VELVET: ';
+                exportText += `${prefix}${msg.content}\n\n`;
+            });
+
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `velvetvoice_chat_${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Keyboard shortcuts
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/' && document.activeElement.tagName === 'BODY') {
+                    e.preventDefault();
+                    document.getElementById('textInput').focus();
+                }
+                
+                if (e.metaKey && e.key === 'Enter' && isVoiceActive) {
+                    e.preventDefault();
+                    stopVoiceMode();
+                }
+            });
+
+            // Load voices for TTS (some browsers need this)
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.onvoiceschanged = () => {};
+                // Trigger load
+                setTimeout(() => window.speechSynthesis.getVoices(), 500);
+            }
+        }
+
+        // Initialize everything
+        function initializeApp() {
+            initializeTailwind();
+            loadSavedData();
+            setupKeyboardShortcuts();
+
+            // Initial model info
+            setTimeout(() => {
+                updateModelInfo();
+            }, 100);
+
+            // Auto-focus key field if empty
+            const keyField = document.getElementById('apiKey');
+            if (!keyField.value) {
+                setTimeout(() => keyField.focus(), 800);
+            }
+
+            // Easter egg / tip
+            console.log('%c[VelvetVoice] Uncensored voice companion ready. Use responsibly and have fun.', 'color:#666');
+
+            // Show initial tip
+            setTimeout(() => {
+                if (!localStorage.getItem('openrouter_api_key')) {
+                    const tip = document.createElement('div');
+                    tip.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-700 text-xs px-4 py-2 rounded-3xl flex items-center gap-x-2 shadow-xl';
+                    tip.innerHTML = `<span>Get your free OpenRouter key at <a href="https://openrouter.ai/keys" target="_blank" class="underline text-purple-400">openrouter.ai/keys</a></span>`;
+                    document.body.appendChild(tip);
+                    setTimeout(() => tip.remove(), 6500);
+                }
+            }, 4200);
+        }
+
+        // Boot app
+        window.onload = initializeApp;
+
+        // Make some functions global for debugging if needed
+        window.VelvetVoice = { clearHistory, exportChat, loadDefaultPersona };
+    </script>
+</body>
+</html>
