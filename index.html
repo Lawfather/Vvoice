@@ -451,7 +451,7 @@ You love explicit content and are here to fulfill fantasies.`;
             localStorage.setItem('system_prompt', systemPrompt);
         }
 
-        function addMessage(role, content, isVoice = false) {
+        function addMessage(role, content, isVoice = false, pushToHistory = true) {
             const container = document.getElementById('chatContainer');
             
             // Remove placeholder if exists
@@ -484,13 +484,19 @@ You love explicit content and are here to fulfill fantasies.`;
             container.scrollTop = container.scrollHeight;
 
             // Add to conversation history
-            if (role !== 'system') {
+            if (role !== 'system' && pushToHistory) {
                 conversation.push({ role, content });
                 
-                // Optional: trim very long history (keep last ~15 messages)
+                // Optional: trim very long history (keep last ~15 messages).
+                // Keep system first, and make sure the first kept turn is a `user`
+                // message so roles still alternate (Mistral-format models 400 otherwise).
                 if (conversation.length > 18) {
                     const systemMsg = conversation[0];
-                    conversation = [systemMsg, ...conversation.slice(-16)];
+                    let tail = conversation.slice(-16);
+                    while (tail.length && tail[0].role !== 'user') {
+                        tail.shift();
+                    }
+                    conversation = [systemMsg, ...tail];
                 }
             }
         }
@@ -505,8 +511,9 @@ You love explicit content and are here to fulfill fantasies.`;
             const temperature = parseFloat(document.getElementById('temperature').value);
             const maxTokens = parseInt(document.getElementById('maxTokens').value);
 
-            // Add user message to history
-            conversation.push({ role: 'user', content: userMessage });
+            // Note: the user message is already in `conversation` (added by addMessage
+            // before this call). Do NOT push it again, or the request sends two
+            // consecutive `user` messages and Mistral-format models reject it with a 400.
 
             const payload = {
                 model: model,
@@ -536,17 +543,19 @@ You love explicit content and are here to fulfill fantasies.`;
                 const data = await response.json();
                 const assistantMessage = data.choices?.[0]?.message?.content || "I'm having trouble responding right now. Please try again.";
 
-                // Add assistant response
-                conversation.push({ role: 'assistant', content: assistantMessage });
+                // The assistant reply is added to `conversation` by the caller via
+                // addMessage('assistant', ...). Don't push it here too.
 
                 return assistantMessage;
 
             } catch (error) {
                 console.error('OpenRouter Error:', error);
                 showToast(`Error: ${error.message}. Check key, model, or internet.`, 'error');
-                
-                // Remove the failed user message from history
-                conversation.pop();
+
+                // Remove the failed user message (added by addMessage before this call)
+                if (conversation.length && conversation[conversation.length - 1].role === 'user') {
+                    conversation.pop();
+                }
                 return null;
             }
         }
@@ -807,7 +816,7 @@ You love explicit content and are here to fulfill fantasies.`;
                 setTimeout(() => {
                     if (isVoiceActive && conversation.length === 1) {
                         const welcome = "Hi there... I'm Velvet. Tell me what you desire, or just start talking. I'm listening.";
-                        addMessage('assistant', welcome);
+                        addMessage('assistant', welcome, false, false); // UI only — keep out of model history
                         speakText(welcome);
                     }
                 }, 1400);
