@@ -162,9 +162,8 @@
                         <label class="section-header text-zinc-400 mb-1.5 block">Model (Cheapest Best Uncensored)</label>
                         <select id="modelSelect" onchange="updateModelInfo()"
                                 class="w-full bg-zinc-900 border border-zinc-700 focus:border-purple-500 transition-colors rounded-2xl px-4 py-3 text-sm">
-                            <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">★ Venice Uncensored (Free) - Dolphin Mistral 24B</option>
-                            <option value="sao10k/l3-lunaris-8b">Lunaris 8B (Sao10k) - $0.04/$0.05 per M tokens</option>
-                            <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition">Venice Uncensored (Paid) - Higher limits</option>
+                            <option value="cognitivecomputations/dolphin-mistral-24b-venice-edition:free">★ Dolphin Venice 24B (Free) - uncensored, but rate-limited</option>
+                            <option value="sao10k/l3-lunaris-8b">Lunaris 8B (Sao10k) - ~$0.05/M - reliable, recommended</option>
                             <option value="microsoft/wizardlm-2-8x22b">WizardLM-2 8x22B - Popular RP (~$0.62/M)</option>
                             <option value="">-- Custom Model ID --</option>
                         </select>
@@ -524,20 +523,41 @@ You love explicit content and are here to fulfill fantasies.`;
             };
 
             try {
-                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.href,
-                        'X-Title': 'VelvetVoice Uncensored Companion'
-                    },
-                    body: JSON.stringify(payload)
-                });
+                // The free Dolphin/Venice pool is frequently rate-limited (429) upstream.
+                // Honor Retry-After and retry a few times so a voice session doesn't die
+                // on a transient throttle. Other errors fail fast.
+                let response;
+                const maxRetries = 3;
+                for (let attempt = 0; ; attempt++) {
+                    response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'VelvetVoice Uncensored Companion'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status !== 429 || attempt >= maxRetries) break;
+
+                    // Figure out how long to wait: header first, then body hint, else backoff.
+                    const errBody = await response.clone().json().catch(() => ({}));
+                    const bodyWait = errBody.error?.metadata?.retry_after_seconds;
+                    const headerWait = parseFloat(response.headers.get('Retry-After'));
+                    const waitSec = bodyWait || (isFinite(headerWait) ? headerWait : (attempt + 1) * 2);
+                    updateStatus(`Rate-limited, retrying in ${Math.ceil(waitSec)}s...`, 'processing');
+                    await new Promise(r => setTimeout(r, Math.min(waitSec, 20) * 1000));
+                }
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                    let msg = errorData.error?.message || `API Error: ${response.status}`;
+                    if (response.status === 429) {
+                        msg = "Model is rate-limited (free Dolphin pool is busy). Try again, or switch to Lunaris 8B for a reliable paid model.";
+                    }
+                    throw new Error(msg);
                 }
 
                 const data = await response.json();
