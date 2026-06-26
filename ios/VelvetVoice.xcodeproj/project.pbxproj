@@ -9,16 +9,20 @@
 /* Begin PBXBuildFile section */
 		1281C75DA1A985D132C7C914 /* OpenRouterClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAE162D9B0CA2FC599A10225 /* OpenRouterClient.swift */; };
 		333D4B90FA884C068A3A4E6E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC05A1D102004951CFC60D08 /* ContentView.swift */; };
+		4471CD29F408AD1DC9B3B8B8 /* OpenRouterTTS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5FD421F45CA4627CE79F58B /* OpenRouterTTS.swift */; };
 		4D5FFBB644F3CAE6726FF6BF /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A77AFBA00F6407C94003571 /* Settings.swift */; };
+		72A9F13CD187A1CCF7379C6E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9DB7EBED4E41DC23387D089B /* Assets.xcassets */; };
 		9A0DB1BD95134FD3B7E7B83F /* VelvetVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0264B6B185F1EAA06F05A043 /* VelvetVoiceApp.swift */; };
 		B936409C2BF181E2CB6E5B67 /* VoiceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC8B648A2801BBF12D4826E /* VoiceEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0264B6B185F1EAA06F05A043 /* VelvetVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VelvetVoiceApp.swift; sourceTree = "<group>"; };
-		28C667227E968140AE908DC9 /* VelvetVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = VelvetVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		28C667227E968140AE908DC9 /* VelvetVoice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VelvetVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A77AFBA00F6407C94003571 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		8C4BAAFD25FB7ED03B4770FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9DB7EBED4E41DC23387D089B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A5FD421F45CA4627CE79F58B /* OpenRouterTTS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterTTS.swift; sourceTree = "<group>"; };
 		CAE162D9B0CA2FC599A10225 /* OpenRouterClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterClient.swift; sourceTree = "<group>"; };
 		CC05A1D102004951CFC60D08 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CCC8B648A2801BBF12D4826E /* VoiceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceEngine.swift; sourceTree = "<group>"; };
@@ -36,9 +40,11 @@
 		C1C87766F02CB442C821426C /* VelvetVoice */ = {
 			isa = PBXGroup;
 			children = (
+				9DB7EBED4E41DC23387D089B /* Assets.xcassets */,
 				CC05A1D102004951CFC60D08 /* ContentView.swift */,
 				8C4BAAFD25FB7ED03B4770FB /* Info.plist */,
 				CAE162D9B0CA2FC599A10225 /* OpenRouterClient.swift */,
+				A5FD421F45CA4627CE79F58B /* OpenRouterTTS.swift */,
 				7A77AFBA00F6407C94003571 /* Settings.swift */,
 				0264B6B185F1EAA06F05A043 /* VelvetVoiceApp.swift */,
 				CCC8B648A2801BBF12D4826E /* VoiceEngine.swift */,
@@ -62,6 +68,7 @@
 			buildConfigurationList = 1ECD36E25AC8392E4A6EECF2 /* Build configuration list for PBXNativeTarget "VelvetVoice" */;
 			buildPhases = (
 				F161182965B93D622084E470 /* Sources */,
+				E17344AD315238EB9E7A50DC /* Resources */,
 			);
 			buildRules = (
 			);
@@ -107,6 +114,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		E17344AD315238EB9E7A50DC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				72A9F13CD187A1CCF7379C6E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		F161182965B93D622084E470 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -114,6 +132,7 @@
 			files = (
 				333D4B90FA884C068A3A4E6E /* ContentView.swift in Sources */,
 				1281C75DA1A985D132C7C914 /* OpenRouterClient.swift in Sources */,
+				4471CD29F408AD1DC9B3B8B8 /* OpenRouterTTS.swift in Sources */,
 				4D5FFBB644F3CAE6726FF6BF /* Settings.swift in Sources */,
 				9A0DB1BD95134FD3B7E7B83F /* VelvetVoiceApp.swift in Sources */,
 				B936409C2BF181E2CB6E5B67 /* VoiceEngine.swift in Sources */,
@@ -186,6 +205,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 37S6J8F9B6;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VelvetVoice/Info.plist;
@@ -209,6 +229,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 37S6J8F9B6;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VelvetVoice/Info.plist;

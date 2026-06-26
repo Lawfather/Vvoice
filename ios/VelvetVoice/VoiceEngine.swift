@@ -35,6 +35,8 @@ final class VoiceEngine: NSObject, ObservableObject {
 
     private let synth = AVSpeechSynthesizer()
     private let client = OpenRouterClient()
+    private let tts = OpenRouterTTS()
+    private var audioPlayer: AVAudioPlayer?
 
     private var conversation: [ChatMessage] = []   // history sent to the API
     private var silenceTimer: Timer?
@@ -58,7 +60,11 @@ final class VoiceEngine: NSObject, ObservableObject {
             self.transcript.removeAll()
             self.isActive = true
             self.configureSession()
-            self.beginListening()
+            if Settings.pushToTalk {
+                self.status = .idle          // ready — user holds the talk button
+            } else {
+                self.beginListening()
+            }
         }
     }
 
@@ -66,9 +72,34 @@ final class VoiceEngine: NSObject, ObservableObject {
         isActive = false
         stopListening()
         synth.stopSpeaking(at: .immediate)
+        audioPlayer?.stop()
+        audioPlayer = nil
         deactivateSession()
         liveText = ""
         status = .idle
+    }
+
+    // MARK: - Push-to-talk
+
+    /// Called when the user presses-and-holds the talk button. Interrupts any
+    /// in-progress reply so you can barge in.
+    func pttPress() {
+        guard isActive else { return }
+        audioPlayer?.stop(); audioPlayer = nil
+        synth.stopSpeaking(at: .immediate)
+        beginListening()
+    }
+
+    /// Called when the user releases the talk button — sends whatever was heard.
+    func pttRelease() {
+        guard isActive else { return }
+        let text = latestText.trimmingCharacters(in: .whitespacesAndNewlines)
+        stopListening()
+        liveText = ""
+        guard !text.isEmpty else { status = .idle; return }
+        transcript.append(Turn(role: "user", text: text))
+        status = .thinking
+        Task { await self.handle(userText: text) }
     }
 
     /// Send a typed message (works whether or not the voice loop is running).
@@ -180,10 +211,12 @@ final class VoiceEngine: NSObject, ObservableObject {
         task = nil
     }
 
-    /// Treat ~1.2s of no new words as "the user finished talking".
+    /// In auto mode, treat `Settings.silenceSeconds` of no new words as "done talking".
+    /// In push-to-talk mode the button controls turn-end, so skip the timer entirely.
     private func resetSilenceTimer() {
+        guard !Settings.pushToTalk else { return }
         silenceTimer?.invalidate()
-        silenceTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: false) { [weak self] _ in
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: Settings.silenceSeconds, repeats: false) { [weak self] _ in
             Task { @MainActor in self?.finishUtterance() }
         }
     }
@@ -230,6 +263,34 @@ final class VoiceEngine: NSObject, ObservableObject {
 
     private func speak(_ text: String) {
         status = .speaking
+        if Settings.voiceProvider == "apple" {
+            appleSpeak(text)
+        } else {
+            Task { await self.cloudSpeak(text) }
+        }
+    }
+
+    /// OpenRouter TTS (Orpheus/etc.). Falls back to the on-device voice on any failure
+    /// so a network blip still gets spoken aloud.
+    private func cloudSpeak(_ text: String) async {
+        do {
+            let data = try await tts.synthesize(text: text,
+                                                model: Settings.ttsModel,
+                                                voice: Settings.ttsVoice,
+                                                apiKey: Settings.apiKey)
+            let player = try AVAudioPlayer(data: data)
+            player.delegate = self
+            audioPlayer = player
+            status = .speaking
+            player.play()
+        } catch {
+            errorMessage = "Cloud voice unavailable (\(error.localizedDescription)). Using the phone's built-in voice."
+            appleSpeak(text)
+        }
+    }
+
+    private func appleSpeak(_ text: String) {
+        status = .speaking
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         utterance.pitchMultiplier = 1.0
@@ -245,6 +306,21 @@ final class VoiceEngine: NSObject, ObservableObject {
         return english.first(where: { $0.name.contains("Samantha") }) ?? english.first
     }
 
+    /// Shared "finished talking" handler for BOTH the cloud audio player and the
+    /// on-device synthesizer: resume the loop, or wait for the next push-to-talk press.
+    private func onSpeechFinished() {
+        audioPlayer = nil
+        guard isActive else {
+            if status == .speaking { status = .idle }
+            return
+        }
+        if Settings.pushToTalk {
+            status = .idle           // ready for the next hold-to-talk
+        } else {
+            beginListening()
+        }
+    }
+
     // MARK: - Helpers
 
     private func fail(_ message: String) {
@@ -255,16 +331,11 @@ final class VoiceEngine: NSObject, ObservableObject {
 
 // MARK: - Speech finished -> resume listening
 
-extension VoiceEngine: AVSpeechSynthesizerDelegate {
+extension VoiceEngine: AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
+    // On-device synthesizer finished.
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didFinish utterance: AVSpeechUtterance) {
-        Task { @MainActor in
-            guard self.isActive else {
-                if self.status == .speaking { self.status = .idle }
-                return
-            }
-            self.beginListening()
-        }
+        Task { @MainActor in self.onSpeechFinished() }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
@@ -272,5 +343,10 @@ extension VoiceEngine: AVSpeechSynthesizerDelegate {
         Task { @MainActor in
             if !self.isActive && self.status == .speaking { self.status = .idle }
         }
+    }
+
+    // Cloud TTS audio finished.
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor in self.onSpeechFinished() }
     }
 }

@@ -3,11 +3,17 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var engine = VoiceEngine()
 
-    @State private var apiKey  = Settings.apiKey
-    @State private var modelID = Settings.model
-    @State private var persona = Settings.persona
-    @State private var typed   = ""
+    @State private var apiKey   = Settings.apiKey
+    @State private var modelID  = Settings.model
+    @State private var persona  = Settings.persona
+    @State private var typed    = ""
     @State private var showSettings = true
+
+    // Voice + turn-taking
+    @State private var useCloudVoice = (Settings.voiceProvider != "apple")
+    @State private var ttsID    = Settings.ttsModel
+    @State private var silence  = Settings.silenceSeconds
+    @State private var pushToTalk = Settings.pushToTalk
 
     private let accent = Color(red: 0.75, green: 0.15, blue: 0.83)
 
@@ -17,7 +23,7 @@ struct ContentView: View {
                 VStack(spacing: 18) {
                     statusPill
                     settingsCard
-                    bigButton
+                    controls
                     transcriptCard
                     typeRow
                 }
@@ -132,15 +138,81 @@ struct ContentView: View {
                         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
                         .onChange(of: persona) { _, newValue in Settings.persona = newValue }
                 }
+
+                // VOICE
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("VOICE").font(.caption2).foregroundStyle(.secondary)
+                    Picker("Voice source", selection: $useCloudVoice) {
+                        Text("Cloud (better)").tag(true)
+                        Text("Apple (free)").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: useCloudVoice) { _, v in
+                        Settings.voiceProvider = v ? "openrouter" : "apple"
+                    }
+                    if useCloudVoice {
+                        Picker("TTS voice", selection: $ttsID) {
+                            ForEach(TTSOption.all) { o in Text(o.name).tag(o.id) }
+                        }
+                        .pickerStyle(.menu)
+                        .onChange(of: ttsID) { _, id in
+                            let o = TTSOption.named(id)
+                            Settings.ttsModel = o.id
+                            Settings.ttsVoice = o.voice
+                        }
+                        Text(TTSOption.named(ttsID).note)
+                            .font(.caption2).foregroundStyle(.secondary)
+                    } else {
+                        Text("Uses the phone's built-in voice — free, offline, instant.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+
+                // TURN-TAKING
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle(isOn: $pushToTalk) {
+                        Text("PUSH-TO-TALK").font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .onChange(of: pushToTalk) { _, v in Settings.pushToTalk = v }
+                    Text(pushToTalk
+                         ? "Hold the button to talk; it replies when you let go."
+                         : "Auto mode: it replies after you pause.")
+                        .font(.caption2).foregroundStyle(.secondary)
+
+                    if !pushToTalk {
+                        HStack {
+                            Text("PATIENCE").font(.caption2).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(String(format: "%.1fs", silence))
+                                .font(.caption2.monospaced()).foregroundStyle(.secondary)
+                        }
+                        Slider(value: $silence, in: 0.8...4.0, step: 0.1)
+                            .onChange(of: silence) { _, v in Settings.silenceSeconds = v }
+                        Text("How long it waits after you stop talking before replying.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .padding(16)
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 22))
     }
 
-    // MARK: big talk button
+    // MARK: talk controls
 
-    private var bigButton: some View {
+    @ViewBuilder
+    private var controls: some View {
+        if engine.isActive && pushToTalk {
+            VStack(spacing: 10) {
+                holdToTalkButton
+                stopButton
+            }
+        } else {
+            startStopButton
+        }
+    }
+
+    private var startStopButton: some View {
         Button {
             if engine.isActive { engine.stopVoice() } else { engine.startVoice() }
         } label: {
@@ -159,6 +231,40 @@ struct ContentView: View {
                 in: RoundedRectangle(cornerRadius: 22))
             .foregroundStyle(.white)
         }
+    }
+
+    private var stopButton: some View {
+        Button { engine.stopVoice() } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "stop.fill")
+                Text("STOP").fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+            .foregroundStyle(.white)
+        }
+    }
+
+    private var holdToTalkButton: some View {
+        let listening = engine.status == .listening
+        return Text(listening ? "● LISTENING — release to send" : "HOLD TO TALK")
+            .fontWeight(.semibold)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
+            .background(
+                LinearGradient(colors: listening ? [.green, .teal] : [accent, .pink],
+                               startPoint: .leading, endPoint: .trailing),
+                in: RoundedRectangle(cornerRadius: 22))
+            .foregroundStyle(.white)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        if engine.status != .listening { engine.pttPress() }
+                    }
+                    .onEnded { _ in engine.pttRelease() }
+            )
     }
 
     // MARK: transcript
